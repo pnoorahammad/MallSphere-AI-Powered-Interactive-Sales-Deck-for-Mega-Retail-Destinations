@@ -1,0 +1,231 @@
+// prisma/schema.prisma
+// This file is what Prisma reads to understand your database structure
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model for authentication
+model User {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  email         String     @unique
+  name          String?
+  role          String     @default("user") // user, admin, sponsor, tenant
+  company       String?
+  phone         String?
+  password      String?
+  avatar        String?
+  bio           String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Relations
+  events        Event[]
+  bookings      EventBooking[]
+  inquiries     Inquiry[]
+  sponsorships  Sponsorship[]
+  lesseeInfo    LesseeInfo?
+  
+  @@map("users")
+}
+
+// Mall/Property Information
+model Property {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  description   String
+  location      String
+  area          Float      // in sqft
+  yearOpened    Int
+  stories       Int
+  parking       Int
+  
+  // Stats
+  annualVisitors    Int
+  annualRevenue     Float
+  tenantCount       Int
+  
+  // Media
+  heroVideo     String     // Cloudinary URL
+  thumbnail     String
+  images        String[]
+  
+  // Sections content
+  stats         String?    // JSON stringified
+  brands        Brand[]
+  venues        Venue[]
+  events        Event[]
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("properties")
+}
+
+// Brands/Retailers
+model Brand {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  category      String     // Luxury, Fashion, F&B, Tech, etc
+  description   String?
+  logo          String     // Cloudinary URL
+  website       String?
+  instagram     String?
+  tenantsSince  Int?
+  
+  propertyId    String     @db.ObjectId
+  property      Property   @relation(fields: [propertyId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("brands")
+}
+
+// Venues/Spaces
+model Venue {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  type          String     // Retail, F&B, Entertainment, Office
+  area          Float
+  floor         Int?
+  description   String?
+  price         Float?     // Annual rent
+  available     Boolean    @default(true)
+  images        String[]
+  
+  propertyId    String     @db.ObjectId
+  property      Property   @relation(fields: [propertyId], references: [id])
+  
+  inquiries     Inquiry[]
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("venues")
+}
+
+// Events
+model Event {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  startDate     DateTime
+  endDate       DateTime
+  location      String?
+  image         String?
+  eventType     String     // Concert, Fashion, Festival, Pop-up
+  capacity      Int?
+  ticketPrice   Float?
+  
+  propertyId    String     @db.ObjectId
+  property      Property   @relation(fields: [propertyId], references: [id])
+  
+  creatorId     String     @db.ObjectId
+  creator       User       @relation(fields: [creatorId], references: [id])
+  
+  bookings      EventBooking[]
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("events")
+}
+
+// Event Bookings
+model EventBooking {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  quantity      Int
+  totalPrice    Float
+  status        String     @default("pending") // pending, confirmed, cancelled
+  
+  eventId       String     @db.ObjectId
+  event         Event      @relation(fields: [eventId], references: [id])
+  
+  userId        String     @db.ObjectId
+  user          User       @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("event_bookings")
+}
+
+// Sponsorship Opportunities
+model Sponsorship {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  packageName   String     // Gold, Platinum, Diamond
+  price         Float
+  benefits      String[]   // Array of benefits
+  available     Boolean    @default(true)
+  
+  userId        String?    @db.ObjectId
+  sponsor       User?      @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("sponsorships")
+}
+
+// Leasing Inquiries
+model Inquiry {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  name          String
+  email         String
+  phone         String
+  company       String?
+  type          String?    // Retail, F&B, Office, Other
+  message       String?
+  squareFootage Float?
+  status        String     @default("new") // new, contacted, qualified, won, lost
+  
+  venueId       String?    @db.ObjectId
+  venue         Venue?     @relation(fields: [venueId], references: [id])
+  
+  userId        String?    @db.ObjectId
+  user          User?      @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("inquiries")
+}
+
+// Leasing Information for Registered Users
+model LesseeInfo {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  businessType  String
+  yearsInBusiness Int?
+  annualRevenue Float?
+  storeLocations Int?
+  
+  userId        String     @unique @db.ObjectId
+  user          User       @relation(fields: [userId], references: [id])
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("lessee_info")
+}
+
+// Content/AI Generated
+model Content {
+  id            String     @id @default(auto()) @map("_id") @db.ObjectId
+  section       String     // hero, retail, dining, entertainment, etc
+  title         String?
+  body          String?
+  metadata      String?    // JSON stringified
+  
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@map("content")
+}
