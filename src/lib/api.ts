@@ -3,7 +3,17 @@
 
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+/**
+ * In the browser we should prefer same-origin calls (`/api`) to avoid:
+ * - wrong port issues (e.g. running dev server on 3001 but env points to 3000)
+ * - CORS issues when frontend/backend are actually the same Next app
+ *
+ * If you truly have a separate backend, set `NEXT_PUBLIC_API_URL` explicitly.
+ */
+const API_BASE_URL =
+  typeof window !== "undefined"
+    ? process.env.NEXT_PUBLIC_API_URL || "/api"
+    : process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
 
 type JsonObject = Record<string, unknown>;
 
