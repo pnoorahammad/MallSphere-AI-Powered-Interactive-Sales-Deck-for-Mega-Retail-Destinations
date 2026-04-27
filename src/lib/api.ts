@@ -102,6 +102,10 @@ export const aiAPI = {
     apiClient.post("/ai/generate-content", { section }),
 };
 
+export const healthAPI = {
+  get: () => apiClient.get("/health"),
+};
+
 // Content
 export const contentAPI = {
   getBySection: (section: string) =>
